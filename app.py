@@ -16,7 +16,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 security_system = RaspberryPiFacialRecognitionSecurity()
 
 # Configuration pour le streaming
-STREAMING_SERVER_URL = "http://your-streaming-server.com:5001"  # À configurer
+STREAMING_SERVER_URL = "https://apps.mediabox.bi:26875/streaming"  # À configurer
 streaming_active = False
 streaming_thread = None
 stream_lock = threading.Lock()
