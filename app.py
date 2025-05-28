@@ -7,6 +7,7 @@ import threading
 import time
 import requests
 import base64
+import DoorLockController
 from io import BytesIO
 
 app = Flask(__name__)
