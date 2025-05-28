@@ -2,6 +2,7 @@ import pyttsx3
 import threading
 import logging
 from collections import deque
+import time
 
 class TTSManager:
     """Gestionnaire Text-to-Speech optimisé pour Raspberry Pi"""
