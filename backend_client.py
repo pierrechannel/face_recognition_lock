@@ -63,7 +63,7 @@ class BackendAPIClient:
         """Envoie un log d'accès au backend"""
         try:
             response = self.session.post(
-                f"{self.base_url}/access-logs",
+                f"{self.base_url}/warehouse_acces/create",
                 headers=self.headers,
                 json=access_data,
                 timeout=10
