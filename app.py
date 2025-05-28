@@ -329,5 +329,3 @@ if __name__ == '__main__':
         stream_active = False
     finally:
         security_system.cleanup()
-
-
