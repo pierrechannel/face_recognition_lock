@@ -1,0 +1,26 @@
+2025-05-28 09:57:46,682 - INFO - Could not import comtypes.gen, trying to create it.
+2025-05-28 09:57:46,685 - INFO - Created comtypes.gen directory: 'C:\Users\Npc\AppData\Local\Programs\Python\Python311\Lib\site-packages\comtypes\gen'
+2025-05-28 09:57:46,686 - INFO - Writing __init__.py file: 'C:\Users\Npc\AppData\Local\Programs\Python\Python311\Lib\site-packages\comtypes\gen\__init__.py'
+2025-05-28 09:57:46,717 - INFO - Using writeable comtypes cache directory: 'C:\Users\Npc\AppData\Local\Programs\Python\Python311\Lib\site-packages\comtypes\gen'
+2025-05-28 09:57:47,388 - INFO - Could not import comtypes.gen._C866CA3A_32F7_11D2_9602_00C04F8EE628_0_5_4: No module named 'comtypes.gen._C866CA3A_32F7_11D2_9602_00C04F8EE628_0_5_4'
+2025-05-28 09:57:47,457 - INFO - # Generating comtypes.gen._C866CA3A_32F7_11D2_9602_00C04F8EE628_0_5_4
+2025-05-28 09:57:48,057 - INFO - # Generating comtypes.gen.SpeechLib
+2025-05-28 09:57:48,120 - INFO - Could not import comtypes.gen._00020430_0000_0000_C000_000000000046_0_2_0: No module named 'comtypes.gen._00020430_0000_0000_C000_000000000046_0_2_0'
+2025-05-28 09:57:48,159 - INFO - # Generating comtypes.gen._00020430_0000_0000_C000_000000000046_0_2_0
+2025-05-28 09:57:48,210 - INFO - # Generating comtypes.gen.stdole
+2025-05-28 09:58:00,405 - INFO - Système TTS initialisé
+2025-05-28 09:58:08,212 - INFO - Webcam initialisée
+2025-05-28 09:58:08,213 - INFO - Système de sécurité Flask initialisé
+2025-05-28 09:58:09,746 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.5.41:5000
+2025-05-28 09:58:09,762 - INFO - [33mPress CTRL+C to quit[0m
+2025-05-28 09:58:26,594 - INFO - 127.0.0.1 - - [28/May/2025 09:58:26] "[33mGET / HTTP/1.1[0m" 404 -
+2025-05-28 09:58:32,628 - INFO - 127.0.0.1 - - [28/May/2025 09:58:32] "[33mGET /test/front_end/components/side-icon.css HTTP/1.1[0m" 404 -
+2025-05-28 09:58:32,637 - INFO - 127.0.0.1 - - [28/May/2025 09:58:32] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-05-28 09:58:43,758 - INFO - 127.0.0.1 - - [28/May/2025 09:58:43] "GET /health HTTP/1.1" 200 -
+2025-05-28 09:58:45,014 - INFO - 127.0.0.1 - - [28/May/2025 09:58:45] "[33mGET /test/front_end/components/side-icon.css HTTP/1.1[0m" 404 -
+2025-05-28 10:02:13,188 - INFO - 127.0.0.1 - - [28/May/2025 10:02:13] "GET /access-logs HTTP/1.1" 200 -
+2025-05-28 10:02:14,872 - INFO - 127.0.0.1 - - [28/May/2025 10:02:14] "[33mGET /test/front_end/components/side-icon.css HTTP/1.1[0m" 404 -
+2025-05-28 10:15:39,185 - INFO - Système TTS fermé
