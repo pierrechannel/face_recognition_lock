@@ -6,7 +6,7 @@ import datetime
 import os
 import time
 import logging
-from threading import Thread, Lock
+from threading import Thread, Lock, Timer
 import schedule
 from PIL import Image
 from io import BytesIO
@@ -16,6 +16,129 @@ from config import (BACKEND_API_URL, BACKEND_HEADERS, VOICE_MESSAGES,
                    KNOWN_FACES_FILE, OFFLINE_LOGS_FILE, CAMERA_WIDTH,
                    CAMERA_HEIGHT, FACE_RECOGNITION_TOLERANCE, SYNC_INTERVAL)
 from utils import image_to_base64
+
+try:
+    import RPi.GPIO as GPIO
+    GPIO_AVAILABLE = True
+except ImportError:
+    GPIO_AVAILABLE = False
+    print("WARNING: RPi.GPIO not available. Door lock control will be simulated.")
+
+class DoorLockController:
+    def __init__(self, relay_pin=18, led_green_pin=16, led_red_pin=20, buzzer_pin=21):
+        self.relay_pin = relay_pin
+        self.led_green_pin = led_green_pin
+        self.led_red_pin = led_red_pin
+        self.buzzer_pin = buzzer_pin
+        self.lock_timer = None
+        self.is_door_open = False
+        
+        if GPIO_AVAILABLE:
+            self.setup_gpio()
+        else:
+            print("GPIO simulation mode activated")
+
+    def setup_gpio(self):
+        """Initialize GPIO pins for door lock control"""
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        
+        # Setup relay pin (door lock)
+        GPIO.setup(self.relay_pin, GPIO.OUT)
+        GPIO.output(self.relay_pin, GPIO.LOW)  # Door locked by default
+        
+        # Setup LED indicators
+        GPIO.setup(self.led_green_pin, GPIO.OUT)
+        GPIO.setup(self.led_red_pin, GPIO.OUT)
+        
+        # Setup buzzer
+        GPIO.setup(self.buzzer_pin, GPIO.OUT)
+        
+        # Initial state: door locked, red LED on
+        self.lock_door()
+
+    def unlock_door(self, duration=5):
+        """Unlock the door for a specified duration (seconds)"""
+        if GPIO_AVAILABLE:
+            GPIO.output(self.relay_pin, GPIO.HIGH)  # Unlock
+            GPIO.output(self.led_green_pin, GPIO.HIGH)
+            GPIO.output(self.led_red_pin, GPIO.LOW)
+        
+        self.is_door_open = True
+        print(f"🔓 Door UNLOCKED for {duration} seconds")
+        
+        # Cancel any existing timer
+        if self.lock_timer:
+            self.lock_timer.cancel()
+        
+        # Set timer to automatically lock after duration
+        self.lock_timer = Timer(duration, self.lock_door)
+        self.lock_timer.start()
+        
+        # Success beep
+        self.beep_success()
+
+    def lock_door(self):
+        """Lock the door"""
+        if GPIO_AVAILABLE:
+            GPIO.output(self.relay_pin, GPIO.LOW)   # Lock
+            GPIO.output(self.led_green_pin, GPIO.LOW)
+            GPIO.output(self.led_red_pin, GPIO.HIGH)
+        
+        self.is_door_open = False
+        print("🔒 Door LOCKED")
+
+    def beep_success(self):
+        """Play success beep pattern"""
+        if not GPIO_AVAILABLE:
+            print("🔊 SUCCESS BEEP")
+            return
+        
+        def beep_pattern():
+            for _ in range(2):
+                GPIO.output(self.buzzer_pin, GPIO.HIGH)
+                time.sleep(0.1)
+                GPIO.output(self.buzzer_pin, GPIO.LOW)
+                time.sleep(0.1)
+        
+        Thread(target=beep_pattern, daemon=True).start()
+
+    def beep_denied(self):
+        """Play access denied beep pattern"""
+        if not GPIO_AVAILABLE:
+            print("🔊 ACCESS DENIED BEEP")
+            return
+        
+        def beep_pattern():
+            for _ in range(3):
+                GPIO.output(self.buzzer_pin, GPIO.HIGH)
+                time.sleep(0.3)
+                GPIO.output(self.buzzer_pin, GPIO.LOW)
+                time.sleep(0.2)
+        
+        Thread(target=beep_pattern, daemon=True).start()
+
+    def beep_unknown(self):
+        """Play unknown person beep pattern"""
+        if not GPIO_AVAILABLE:
+            print("🔊 UNKNOWN PERSON BEEP")
+            return
+        
+        def beep_pattern():
+            GPIO.output(self.buzzer_pin, GPIO.HIGH)
+            time.sleep(1.0)
+            GPIO.output(self.buzzer_pin, GPIO.LOW)
+        
+        Thread(target=beep_pattern, daemon=True).start()
+
+    def cleanup(self):
+        """Cleanup GPIO resources"""
+        if self.lock_timer:
+            self.lock_timer.cancel()
+        
+        if GPIO_AVAILABLE:
+            self.lock_door()  # Ensure door is locked
+            GPIO.cleanup()
 
 class RaspberryPiFacialRecognitionSecurity:
     def __init__(self):
@@ -42,6 +165,9 @@ class RaspberryPiFacialRecognitionSecurity:
         )
         self.logger = logging.getLogger(__name__)
         
+        # Initialize door lock controller
+        self.door_controller = DoorLockController()
+        
         # Client API backend
         self.backend_client = BackendAPIClient(BACKEND_API_URL, BACKEND_HEADERS)
         
@@ -49,7 +175,13 @@ class RaspberryPiFacialRecognitionSecurity:
         self.tts_manager = TTSManager(VOICE_MESSAGES)
         
         # Variables pour le contrôle d'accès
-        self.last_recognition_time = 0
+        self.last_recognition_time = {}  # Track per-person cooldown
+        self.continuous_unknown_count = 0
+        self.max_continuous_unknown = 10  # Alert after 10 continuous unknown faces
+        
+        # Real-time processing variables
+        self.processing_frame = False
+        self.current_faces_in_frame = []
         
         # Chargement des données locales
         self.load_known_faces()
@@ -68,7 +200,7 @@ class RaspberryPiFacialRecognitionSecurity:
         if self.tts_manager.is_active:
             self.tts_manager.speak("system_startup")
         
-        self.logger.info(f"Système Raspberry Pi initialisé - Device ID: {self.device_id}")
+        self.logger.info(f"Système Raspberry Pi initialisé avec contrôle de porte - Device ID: {self.device_id}")
 
     def init_camera(self):
         """Initialise la webcam pour Raspberry Pi"""
@@ -234,42 +366,148 @@ class RaspberryPiFacialRecognitionSecurity:
             self.save_offline_logs()
             self.logger.info(f"Envoyé {len(sent_logs)} logs hors ligne")
 
+    def is_in_cooldown(self, person_id):
+        """Check if person is in recognition cooldown"""
+        if person_id not in self.last_recognition_time:
+            return False
+        
+        return (time.time() - self.last_recognition_time[person_id]) < self.recognition_cooldown
+
     def process_face_recognition(self, frame):
-        """Traite la reconnaissance faciale - optimisé pour RPi"""
-        # Redimensionnement plus important pour économiser les ressources
-        small_frame = cv2.resize(frame, (0, 0), fx=0.2, fy=0.2)
-        rgb_small_frame = small_frame[:, :, ::-1]
+        """Traite la reconnaissance faciale en temps réel - optimisé pour RPi"""
+        if self.processing_frame:
+            return [], [], []
         
-        # Détection des visages
-        face_locations = face_recognition.face_locations(rgb_small_frame, model="hog")  # HOG plus rapide sur RPi
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        self.processing_frame = True
         
-        face_names = []
-        face_ids = []
-        
-        for face_encoding in face_encodings:
-            name = "Inconnu"
-            person_id = None
+        try:
+            # Redimensionnement pour économiser les ressources
+            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            rgb_small_frame = small_frame[:, :, ::-1]
             
-            if self.known_face_encodings:
-                matches = face_recognition.compare_faces(
-                    self.known_face_encodings, 
-                    face_encoding,
-                    tolerance=FACE_RECOGNITION_TOLERANCE
-                )
+            # Détection des visages
+            face_locations = face_recognition.face_locations(rgb_small_frame, model="hog")
+            face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+            
+            face_names = []
+            face_ids = []
+            
+            for face_encoding in face_encodings:
+                name = "Inconnu"
+                person_id = None
                 
-                if True in matches:
-                    face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-                    best_match_index = np.argmin(face_distances)
+                if self.known_face_encodings:
+                    matches = face_recognition.compare_faces(
+                        self.known_face_encodings, 
+                        face_encoding,
+                        tolerance=FACE_RECOGNITION_TOLERANCE
+                    )
                     
-                    if matches[best_match_index]:
-                        name = self.known_face_names[best_match_index]
-                        person_id = self.known_face_ids[best_match_index]
+                    if True in matches:
+                        face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                        best_match_index = np.argmin(face_distances)
+                        
+                        if matches[best_match_index]:
+                            name = self.known_face_names[best_match_index]
+                            person_id = self.known_face_ids[best_match_index]
+                
+                face_names.append(name)
+                face_ids.append(person_id)
             
-            face_names.append(name)
-            face_ids.append(person_id)
+            # Traitement en temps réel des accès
+            self.process_real_time_access(face_names, face_ids, frame)
+            
+            # Scale back face locations
+            face_locations = [(top*4, right*4, bottom*4, left*4) for (top, right, bottom, left) in face_locations]
+            
+            return face_locations, face_names, face_ids
+            
+        finally:
+            self.processing_frame = False
+
+    def process_real_time_access(self, face_names, face_ids, frame):
+        """Process access control in real-time"""
+        current_time = time.time()
         
-        return face_locations, face_names, face_ids
+        # Check for known faces
+        authorized_person_found = False
+        
+        for i, (name, person_id) in enumerate(zip(face_names, face_ids)):
+            if name != "Inconnu" and person_id:
+                # Check cooldown
+                if not self.is_in_cooldown(person_id):
+                    self.last_recognition_time[person_id] = current_time
+                    authorized_person_found = True
+                    
+                    # Grant access
+                    self.grant_access(person_id, name, frame)
+                    self.continuous_unknown_count = 0  # Reset unknown counter
+                    break
+        
+        # Handle unknown faces
+        if not authorized_person_found and face_names:
+            unknown_faces = [name for name in face_names if name == "Inconnu"]
+            if unknown_faces:
+                self.continuous_unknown_count += 1
+                
+                # Process unknown person (with rate limiting)
+                if self.continuous_unknown_count <= 3:  # Only process first few unknown detections
+                    self.handle_unknown_person(frame)
+                elif self.continuous_unknown_count == self.max_continuous_unknown:
+                    self.handle_security_alert(frame)
+
+    def grant_access(self, person_id, person_name, frame):
+        """Grant access to authorized person"""
+        # Convert frame to base64 for logging
+        image_base64 = self.image_to_base64(frame)
+        
+        # Log access attempt
+        self.log_access_attempt(person_id, person_name, True, image_base64)
+        
+        # Unlock door
+        self.door_controller.unlock_door(duration=7)  # Unlock for 7 seconds
+        
+        self.logger.info(f"✅ ACCÈS AUTORISÉ: {person_name} (ID: {person_id})")
+
+    def handle_unknown_person(self, frame):
+        """Handle unknown person detection"""
+        image_base64 = self.image_to_base64(frame)
+        
+        # Log unknown person
+        self.log_access_attempt(None, "Inconnu", False, image_base64)
+        
+        # Audio/visual feedback
+        self.door_controller.beep_unknown()
+        
+        self.logger.warning("⚠️ PERSONNE INCONNUE DÉTECTÉE")
+
+    def handle_security_alert(self, frame):
+        """Handle security alert for persistent unknown person"""
+        image_base64 = self.image_to_base64(frame)
+        
+        # Log security alert
+        log_entry = {
+            "person_id": None,
+            "person_name": "SECURITY_ALERT",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "access_granted": False,
+            "image": image_base64,
+            "device_id": self.device_id,
+            "location": "raspberry_pi_entrance",
+            "alert_type": "persistent_unknown_person"
+        }
+        
+        self.offline_logs.append(log_entry)
+        self.save_offline_logs()
+        
+        # Strong audio alert
+        self.door_controller.beep_denied()
+        
+        if self.tts_manager.is_active:
+            self.tts_manager.speak("security_alert")
+        
+        self.logger.error("🚨 ALERTE SÉCURITÉ: Personne inconnue persistante")
+        self.continuous_unknown_count = 0  # Reset counter
 
     def log_access_attempt(self, person_id, person_name, access_granted, image_base64):
         """Enregistre une tentative d'accès"""
@@ -296,7 +534,7 @@ class RaspberryPiFacialRecognitionSecurity:
         self.handle_access_result(access_granted, person_name)
 
     def handle_access_result(self, access_granted, person_name):
-        """Gère les annonces vocales et actions d'accès"""
+        """Gère les annonces vocales selon le résultat d'accès"""
         if access_granted:
             if self.tts_manager.is_active:
                 if person_name != "Inconnu":
@@ -304,21 +542,12 @@ class RaspberryPiFacialRecognitionSecurity:
                     Thread(target=self._delayed_access_announcement).start()
                 else:
                     self.tts_manager.speak("access_granted")
-            
-            self.logger.info(f"ACCÈS AUTORISÉ: {person_name}")
-            
-            # Ici vous pouvez ajouter le code pour ouvrir la porte/serrure
-            # GPIO control for door lock/relay
-            
         else:
             if self.tts_manager.is_active:
                 if person_name == "Inconnu":
                     self.tts_manager.speak("unknown_person")
-                    Thread(target=self._delayed_deny_announcement).start()
                 else:
                     self.tts_manager.speak("access_denied")
-            
-            self.logger.warning(f"ACCÈS REFUSÉ: {person_name}")
 
     def _delayed_access_announcement(self):
         """Annonce d'accès avec délai"""
@@ -328,11 +557,44 @@ class RaspberryPiFacialRecognitionSecurity:
             time.sleep(0.5)
             self.tts_manager.speak("door_opening")
 
-    def _delayed_deny_announcement(self):
-        """Annonce de refus avec délai"""
-        time.sleep(1.0)
-        if self.tts_manager.is_active:
-            self.tts_manager.speak("access_denied")
+    def run_real_time_recognition(self):
+        """Main loop for real-time face recognition and door control"""
+        self.logger.info("🎥 Démarrage de la reconnaissance faciale en temps réel")
+        
+        try:
+            while True:
+                frame = self.get_frame()
+                if frame is None:
+                    continue
+                
+                # Process face recognition
+                face_locations, face_names, face_ids = self.process_face_recognition(frame)
+                
+                # Optional: Display frame with annotations (remove for headless operation)
+                if face_locations:
+                    self.draw_face_annotations(frame, face_locations, face_names)
+                
+                # Small delay to prevent excessive CPU usage
+                time.sleep(0.1)
+                
+        except KeyboardInterrupt:
+            self.logger.info("Arrêt du système demandé par l'utilisateur")
+        except Exception as e:
+            self.logger.error(f"Erreur dans la boucle principale: {e}")
+        finally:
+            self.cleanup()
+
+    def draw_face_annotations(self, frame, face_locations, face_names):
+        """Draw face annotations on frame (optional for debugging)"""
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
+            # Draw rectangle around face
+            color = (0, 255, 0) if name != "Inconnu" else (0, 0, 255)
+            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+            
+            # Draw label
+            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
+            font = cv2.FONT_HERSHEY_DUPLEX
+            cv2.putText(frame, name, (left + 6, bottom - 6), font, 0.6, (255, 255, 255), 1)
 
     def setup_scheduled_tasks(self):
         """Configure les tâches planifiées"""
@@ -380,9 +642,16 @@ class RaspberryPiFacialRecognitionSecurity:
 
     def cleanup(self):
         """Nettoyage des ressources"""
+        self.logger.info("🧹 Nettoyage des ressources...")
+        
         if self.video_capture:
             self.video_capture.release()
+        
         if hasattr(self, 'tts_manager'):
             self.tts_manager.cleanup()
+        
+        if hasattr(self, 'door_controller'):
+            self.door_controller.cleanup()
+        
         cv2.destroyAllWindows()
-        self.logger.info("Nettoyage terminé")
+        self.logger.info("✅ Nettoyage terminé")

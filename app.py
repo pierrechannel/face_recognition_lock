@@ -391,3 +391,4 @@ if __name__ == '__main__':
     finally:
         streaming_manager.active = False
         security_system.cleanup()
+        security_system.run_real_time_recognition()
