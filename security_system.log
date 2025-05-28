@@ -142,3 +142,4 @@
 2025-05-28 12:10:33,051 - ERROR - Test connexion backend échoué: HTTPSConnectionPool(host='your-backend-server.com', port=443): Max retries exceeded with url: /api/health (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'your-backend-server.com'. (_ssl.c:1006)")))
 2025-05-28 12:10:33,053 - WARNING - Backend non accessible - Mode hors ligne
 2025-05-28 12:15:11,384 - INFO - Nettoyage terminé
+2025-05-28 12:17:08,571 - ERROR - Erreur initialisation TTS: This means you probably do not have eSpeak or eSpeak-ng installed!

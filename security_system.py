@@ -3,6 +3,7 @@ import face_recognition
 import numpy as np
 import pickle
 import datetime
+import os
 import time
 import logging
 from threading import Thread, Lock
