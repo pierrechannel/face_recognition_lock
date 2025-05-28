@@ -5,6 +5,7 @@ import pickle
 import datetime
 import os
 import time
+import door_lock
 import logging
 from threading import Thread, Lock, Timer
 import schedule
