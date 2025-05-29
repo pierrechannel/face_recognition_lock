@@ -163,3 +163,18 @@
  * Running on http://10.66.221.250:5001
 2025-05-29 08:14:28,877 - INFO - [33mPress CTRL+C to quit[0m
 2025-05-29 08:19:30,690 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:24:42,609 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='apps.mediabox.bi', port=26875): Read timed out. (read timeout=10)")': /warehouse_access
+2025-05-29 08:24:57,543 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='apps.mediabox.bi', port=26875): Read timed out. (read timeout=10)")': /warehouse_access
+2025-05-29 08:25:12,796 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='apps.mediabox.bi', port=26875): Read timed out. (read timeout=10)")': /warehouse_access
+2025-05-29 08:25:18,149 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:30:29,314 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001DD958AF9D0>: Failed to resolve 'apps.mediabox.bi' ([Errno 11001] getaddrinfo failed)")': /warehouse_access
+2025-05-29 08:30:42,499 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001DD958DD5D0>: Failed to resolve 'apps.mediabox.bi' ([Errno 11001] getaddrinfo failed)")': /warehouse_access
+2025-05-29 08:30:46,504 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001DD958DDD50>: Failed to resolve 'apps.mediabox.bi' ([Errno 11001] getaddrinfo failed)")': /warehouse_access
+2025-05-29 08:30:53,631 - ERROR - Test connexion backend échoué: HTTPSConnectionPool(host='apps.mediabox.bi', port=26875): Max retries exceeded with url: /warehouse_access (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001DD958DE4D0>: Failed to resolve 'apps.mediabox.bi' ([Errno 11001] getaddrinfo failed)"))
+2025-05-29 08:30:53,634 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:35:59,401 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:41:05,996 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:46:11,812 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:51:16,653 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:56:22,783 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 09:01:25,597 - WARNING - Backend non accessible - Mode hors ligne
