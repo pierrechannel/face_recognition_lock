@@ -28,7 +28,7 @@ class BackendAPIClient:
         """Test la connexion au serveur backend"""
         try:
             response = self.session.get(
-                f"{self.base_url}/health",
+                f"{self.base_url}/warehouse_access",
                 headers=self.headers,
                 timeout=10
             )

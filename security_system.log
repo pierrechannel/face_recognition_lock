@@ -143,3 +143,23 @@
 2025-05-28 12:10:33,053 - WARNING - Backend non accessible - Mode hors ligne
 2025-05-28 12:15:11,384 - INFO - Nettoyage terminé
 2025-05-28 12:17:08,571 - ERROR - Erreur initialisation TTS: This means you probably do not have eSpeak or eSpeak-ng installed!
+2025-05-29 08:09:34,002 - ERROR - Erreur initialisation TTS: This means you probably do not have eSpeak or eSpeak-ng installed!
+2025-05-29 08:09:34,075 - ERROR - Impossible d'ouvrir la webcam
+2025-05-29 08:09:50,586 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='apps.mediabox.bi', port=26875): Read timed out. (read timeout=10)")': /health
+2025-05-29 08:09:53,895 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:09:53,897 - INFO - Système Raspberry Pi initialisé avec contrôle de porte - Device ID: https://apps.mediabox.bi:26875/
+2025-05-29 08:09:54,865 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.66.221.250:5001
+2025-05-29 08:09:54,868 - INFO - [33mPress CTRL+C to quit[0m
+2025-05-29 08:14:24,251 - ERROR - Erreur initialisation TTS: This means you probably do not have eSpeak or eSpeak-ng installed!
+2025-05-29 08:14:24,253 - ERROR - Impossible d'ouvrir la webcam
+2025-05-29 08:14:28,204 - WARNING - Backend non accessible - Mode hors ligne
+2025-05-29 08:14:28,238 - INFO - Système Raspberry Pi initialisé avec contrôle de porte - Device ID: https://apps.mediabox.bi:26875/
+2025-05-29 08:14:28,874 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.66.221.250:5001
+2025-05-29 08:14:28,877 - INFO - [33mPress CTRL+C to quit[0m
+2025-05-29 08:19:30,690 - WARNING - Backend non accessible - Mode hors ligne
